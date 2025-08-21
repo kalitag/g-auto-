@@ -14,6 +14,80 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv('BOT_TOKEN', '8465346144:AAG9x6C3OCOpUhVz3-qEK1wBlACOdb0Bz_s')
 
+class URLResolver:
+    def __init__(self):
+        self.shorteners = ['amzn.to', 'fkrt.cc', 'spoo.me', 'bitli.in', 'cutt.ly', 'da.gd', 'wishlink.com']
+        self.tracking_params = ['tag', 'ref', 'ref_', 'affiliate', 'aff_id', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid', 'camp', 'ascsubtag']
+        # Domain-specific allowlist
+        self.allowlist = {
+            'flipkart.com': ['pid'],
+            'www.flipkart.com': ['pid']
+        }
+        self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+
+    async def unshorten_and_clean(self, url):
+        try:
+            response = await asyncio.to_thread(requests.get, url, headers={'User-Agent': self.user_agent}, timeout=3, allow_redirects=True)
+            final_url = response.url
+        except Exception:
+            final_url = url
+
+class URLResolver:
+    def __init__(self):
+        self.shorteners = ['amzn.to', 'fkrt.cc', 'spoo.me', 'bitli.in', 'cutt.ly', 'da.gd', 'wishlink.com']
+        self.tracking_params = ['tag', 'ref', 'ref_', 'affiliate', 'aff_id', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid', 'camp', 'ascsubtag']
+        # Domain-specific allowlist
+        self.allowlist = {
+            'flipkart.com': ['pid'],
+            'www.flipkart.com': ['pid']
+        }
+        self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+
+    async def unshorten_and_clean(self, url):
+        try:
+            response = await asyncio.to_thread(requests.get, url, headers={'User-Agent': self.user_agent}, timeout=3, allow_redirects=True)
+            final_url = response.url
+        except Exception:
+            final_url = url
+
+        # Clean params
+        parsed = urlparse(final_url)
+        query_dict = parse_qs(parsed.query)
+        domain = parsed.netloc.lower()
+
+        kept_query = {}
+        for key, value in query_dict.items():
+            if key.lower() not in [p.lower() for p in self.tracking_params]:
+                if domain in self.allowlist:
+                    if key.lower() in [a.lower() for a in self.allowlist[domain]]:
+                        kept_query[key] = value
+                else:
+                    kept_query[key] = value
+
+        cleaned_query = urlencode(kept_query, doseq=True)
+        cleaned_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, cleaned_query, parsed.fragment))
+
+        return cleaned_url if cleaned_url.startswith('https') else cleaned_url.replace('http', 'https')
+        
+        # Clean params
+        parsed = urlparse(final_url)
+        query_dict = parse_qs(parsed.query)
+        domain = parsed.netloc.lower()
+
+        kept_query = {}
+        for key, value in query_dict.items():
+            if key.lower() not in [p.lower() for p in self.tracking_params]:
+                if domain in self.allowlist:
+                    if key.lower() in [a.lower() for a in self.allowlist[domain]]:
+                        kept_query[key] = value
+                else:
+                    kept_query[key] = value
+
+        cleaned_query = urlencode(kept_query, doseq=True)
+        cleaned_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, cleaned_query, parsed.fragment))
+
+        return cleaned_url if cleaned_url.startswith('https') else cleaned_url.replace('http', 'https')
+
 class PinDetector:
     def __init__(self):
         self.pin_regex = re.compile(r'\b\d{6}\b')
